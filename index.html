@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DU Math payments (View Only)</title>
+    <title>DU Math Payments</title>
     <style>
         :root {
             --paid-bg: #e6f4ea; --paid-text: #137333;
@@ -74,7 +74,6 @@
 </div>
 
 <script>
-    // Paste your updated list of students here before sharing!
     const rawData = `1|MIKTAD KHAN|Paid
 2|MD.GOLAM MAHMOD|Paid
 3|MD. TAMIM AHAMED|Paid
@@ -203,7 +202,7 @@ N/A|Jurat|Paid
 N/A|Imtinan|Paid
 N/A|Ruma*|Paid`;
 
-    let students = rawData.split('\n').map(line => {
+    let students = rawData.trim().split('\n').map(line => {
         const [roll, name, status] = line.split('|');
         return { roll, name, status };
     });
