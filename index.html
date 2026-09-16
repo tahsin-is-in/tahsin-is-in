@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DU Math payments (View Only)</title>
+    <style>
+        :root {
+            --paid-bg: #e6f4ea; --paid-text: #137333;
+            --unpaid-bg: #fce8e6; --unpaid-text: #c5221f;
+            --note-bg: #fef7e0; --note-text: #b06000;
+            --bg-color: #f8f9fa;
+            --card-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        * { box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: var(--bg-color); margin: 0; padding: 20px; color: #333; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        .header { text-align: center; margin-bottom: 20px; }
+        .header h1 { margin: 0 0 10px 0; color: #1a73e8; }
+        .stats { display: flex; justify-content: center; gap: 15px; flex-wrap: wrap; margin-bottom: 20px; }
+        .stat-box { padding: 10px 20px; border-radius: 8px; font-weight: bold; background: white; box-shadow: var(--card-shadow); font-size: 14px; }
+        .controls { display: flex; justify-content: center; flex-wrap: wrap; gap: 10px; margin-bottom: 20px; background: white; padding: 15px; border-radius: 8px; box-shadow: var(--card-shadow); }
+        input, select { padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; outline: none; }
+        input:focus, select:focus { border-color: #1a73e8; }
+        .search-input { flex-grow: 1; min-width: 200px; max-width: 400px; }
+        .legend { display: flex; justify-content: center; gap: 15px; margin-bottom: 20px; font-size: 14px; font-weight: bold; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 15px; }
+        .card { background: white; border-radius: 8px; padding: 15px; box-shadow: var(--card-shadow); border-left: 6px solid #ccc; display: flex; flex-direction: column; }
+        .card.Paid { border-color: var(--paid-text); background-color: var(--paid-bg); }
+        .card.Unpaid { border-color: var(--unpaid-text); background-color: var(--unpaid-bg); }
+        .card.NoteTaker { border-color: var(--note-text); background-color: var(--note-bg); }
+        .card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
+        .card-roll { font-size: 12px; color: #555; font-weight: bold; background: rgba(0,0,0,0.05); padding: 3px 8px; border-radius: 12px; }
+        .card-status { font-size: 11px; font-weight: bold; text-transform: uppercase; }
+        .card.Paid .card-status { color: var(--paid-text); }
+        .card.Unpaid .card-status { color: var(--unpaid-text); }
+        .card.NoteTaker .card-status { color: var(--note-text); }
+        .card-name { font-weight: bold; font-size: 16px; line-height: 1.3; }
+        @media (max-width: 600px) { .controls { flex-direction: column; } .grid { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <h1>DU Math Payments</h1>
+    </div>
+
+    <div class="stats" id="stats-container"></div>
+
+    <div class="legend">
+        <span>🟢 Paid</span>
+        <span>🔴 Not Paid</span>
+        <span>🟡 NoteTaker</span>
+    </div>
+
+    <div class="controls">
+        <input type="text" id="search-input" class="search-input" placeholder="Search by roll or name...">
+        <select id="filter-select">
+            <option value="All">All Statuses</option>
+            <option value="Paid">Paid</option>
+            <option value="Unpaid">Not Paid</option>
+            <option value="NoteTaker">NoteTaker</option>
+        </select>
+        <select id="sort-select">
+            <option value="roll-asc">Sort: Roll (Asc)</option>
+            <option value="roll-desc">Sort: Roll (Desc)</option>
+            <option value="name-asc">Sort: Name (A-Z)</option>
+            <option value="status">Sort: Status</option>
+        </select>
+    </div>
+
+    <div class="grid" id="students-grid"></div>
+</div>
+
+<script>
+    // Paste your updated list of students here before sharing!
+    const rawData = `1|MIKTAD KHAN|Paid
+2|MD.GOLAM MAHMOD|Paid
+3|MD. TAMIM AHAMED|Paid
+4|MAZEDUL HOQ|Unpaid
+5|Habibullah|Paid
+6|MD. Ahasamun Islam|Paid
+7|Omme Salma|Unpaid
+9|Rabiya Akter|Paid
+10|Most. Salma Sultana|Paid
+11|Ayesha Naushin|Unpaid
+13|Mst.Amena Talukder Asha|NoteTaker
+14|MD.ABDUL KADER|Paid
+15|MST.MEGHLA PARVIN|Paid
+16|Masiat Raisa|Paid
+17|Most.Sanjida Yasmin|Paid
+18|S.M. ASFAK AHMED SIDDIQUE|Paid
+19|Jenia Jahan|Paid
+20|MST.MEHEJABIN AKTER MOHUYA|Paid
+21|LAMIYA RAHMAN|Paid
+22|Jotirmoy Sutradhar|Paid
+23|Fariha Islam Mou|NoteTaker
+24|Fatema Tuj Johora|Paid
+25|Md.Shakil Hossen|Unpaid
+26|Rukaiya Rahman|Paid
+27|Mahbub Ul Alam|Paid
+28|Nazia Ahmed|Paid
+29|Easrat Jahan Eite|Paid
+30|Hossain At Tanzil Siam|Paid
+31|Gobendo Saha|Paid
+32|Md.Maksudur Rahman|Paid
+33|Ahnaf Habib|Paid
+34|Sumyea Islam|NoteTaker
+35|Md.Sohanur Rahman|Paid
+36|Md. Nahid Adnan|NoteTaker
+37|MD Shah Alom|Unpaid
+38|Munkasir Rahman|Unpaid
+39|Shah Md. Tanjim Mahabub Turjoy|Paid
+40|Sheikh Arrafi|Paid
+41|Khairunnessa Khanam|Unpaid
+42|Arifa Azad|Paid
+43|Ramisa Raqibah Nuha|NoteTaker
+44|Arman Hosan|Paid
+45|Nazmul Islam|Unpaid
+46|Tahsin Mahmud|NoteTaker
+47|Abdul Ahad|Paid
+48|Kamrunnahar Oushi|Paid
+49|MD Arafat Rahaman Miraj|Paid
+50|Rahnur Rahman Shadi|Paid
+51|Md.Joseb Mia|Paid
+52|MD. SHANTO AHMED|Paid
+53|Md.Tawhidul Islam Saurov|Paid
+54|MD. SAKHAWAT HOSSEN LIMON|Unpaid
+55|Shah Rujdan Rashid Ethaka|Paid
+56|Nurunnahar Afrin|Paid
+57|Joy Biswas|Unpaid
+58|Bidhan paul|Unpaid
+59|Asifuzzaman|Unpaid
+60|Md Tarikul Islam|Unpaid
+61|Sagor Debnath|Unpaid
+62|Md. Shafiul Islam Chowdhury|Paid
+63|Md.Mahfuzul Islam|Paid
+64|Md. Akash Mia|Paid
+65|MD. OMAR FARUK JILAM|Unpaid
+66|Shizuka Guha|Unpaid
+67|Chinmoy sarker|Unpaid
+68|Rhittik Paul|Paid
+71|Md. Abdullah Al Kafi|Unpaid
+72|Rakibul Hasan|Paid
+73|Md.Rafiu Awal|Unpaid
+74|Alif Monaiza Mitra|NoteTaker
+75|Ehsan Mahmud|Unpaid
+76|Md Asif Bin Kamal|Paid
+77|Md Ahosan Habib Imran|Paid
+78|Alena Afrin|Paid
+79|Samia Kamal Alve|Unpaid
+80|Tushrat Mahjabin|Paid
+81|Nafia Goni|Unpaid
+82|Jawad Abrar|Unpaid
+83|Md. Simanto|Unpaid
+84|Rahma Zaman|Paid
+85|Niaz Ahmed|Paid
+86|Faria Naz Tuba|NoteTaker
+87|Salman -F- Rahman|Paid
+88|Md. Tahmid Hasan Siyam|Paid
+89|Md. RIFAT AL HASAN|Paid
+90|Md. Raihan Hasan Ankon|Paid
+91|Md.Fardin Hasan|Paid
+92|Md. Abid Hasan|Paid
+93|Md. Raihanul Islam|Unpaid
+94|Koushik Datta|Unpaid
+95|Md. Abdul Ahad Mahmud Mahin|Paid
+96|Kartik Chandra Arjya|NoteTaker
+97|Mst.Jannatul Fardows Faria|Unpaid
+98|Md. Addin Khan|Paid
+99|Md.Miskatul Arfin|Unpaid
+100|Md.Naziur Rahaman Ovi|Unpaid
+101|Kazi Ali Emam|Paid
+102|Sohag Chandra Roy|Unpaid
+103|Rothno nur shanto|Unpaid
+105|Saifur Rahman|Unpaid
+106|Yeakub Hasan|Unpaid
+107|Mahadin Islam|Paid
+108|Ahanatul Tanha|NoteTaker
+109|Tayeb Ahmad Forajy|Paid
+110|DIPU ROY|Paid
+111|Md.Habibur Rahman|Unpaid
+112|Mehedi Hasan|Unpaid
+113|Tasfia Rahman Pranty|NoteTaker
+114|Srabon Mondol|Paid
+115|SOURAV PAUL|Unpaid
+116|ANIRBAN ANGKON|Paid
+117|Md Nishadur Rahman Nishad|Unpaid
+118|HASIBUL HOQUE|Paid
+119|Razia Sultana Rimach|Paid
+120|Kaniz Fatema|Paid
+122|Anamika Das|Paid
+123|Afnan Bhuiyan Lameya|Paid
+124|Mst. Munira Khatun|NoteTaker
+125|Mumtahina Ferdous Eva|NoteTaker
+126|Md.Rakib Al Hasan Bakter|Paid
+127|Md.Nahid Hasan Nahid|Unpaid
+128|Md.Muzahidul Islam Khan|Unpaid
+129|Sujay Biswas|Unpaid
+N/A|Munim|Unpaid
+N/A|Jurat|Paid
+N/A|Imtinan|Paid
+N/A|Ruma*|Paid`;
+
+    let students = rawData.split('\n').map(line => {
+        const [roll, name, status] = line.split('|');
+        return { roll, name, status };
+    });
+
+    function render() {
+        const grid = document.getElementById('students-grid');
+        const searchVal = document.getElementById('search-input').value.toLowerCase();
+        const filterVal = document.getElementById('filter-select').value;
+        const sortVal = document.getElementById('sort-select').value;
+
+        let filtered = students.filter(s => {
+            const matchesSearch = s.name.toLowerCase().includes(searchVal) || s.roll.toLowerCase().includes(searchVal);
+            const matchesFilter = filterVal === 'All' || s.status === filterVal;
+            return matchesSearch && matchesFilter;
+        });
+
+        filtered.sort((a, b) => {
+            if (sortVal === 'roll-asc') return (parseInt(a.roll) || 9999) - (parseInt(b.roll) || 9999);
+            if (sortVal === 'roll-desc') return (parseInt(b.roll) || 9999) - (parseInt(a.roll) || 9999);
+            if (sortVal === 'name-asc') return a.name.localeCompare(b.name);
+            if (sortVal === 'status') return a.status.localeCompare(b.status);
+        });
+
+        grid.innerHTML = filtered.map(s => `
+            <div class="card ${s.status}">
+                <div class="card-header">
+                    <span class="card-roll">${s.roll !== 'N/A' ? 'Roll: ' + s.roll : 'No Roll'}</span>
+                    <span class="card-status">${s.status === 'Unpaid' ? 'Not Paid' : s.status}</span>
+                </div>
+                <div class="card-name">${s.name}</div>
+            </div>
+        `).join('');
+
+        updateStats();
+    }
+
+    function updateStats() {
+        const total = students.length;
+        const paid = students.filter(s => s.status === 'Paid').length;
+        const unpaid = students.filter(s => s.status === 'Unpaid').length;
+        const noteTakers = students.filter(s => s.status === 'NoteTaker').length;
+
+        document.getElementById('stats-container').innerHTML = `
+            <div class="stat-box">TOTAL: ${total}</div>
+            <div class="stat-box" style="color: var(--paid-text); background: var(--paid-bg);">PAID: ${paid}</div>
+            <div class="stat-box" style="color: var(--unpaid-text); background: var(--unpaid-bg);">NOT PAID: ${unpaid}</div>
+            <div class="stat-box" style="color: var(--note-text); background: var(--note-bg);">NOTETAKER: ${noteTakers}</div>
+        `;
+    }
+
+    document.getElementById('search-input').addEventListener('input', render);
+    document.getElementById('filter-select').addEventListener('change', render);
+    document.getElementById('sort-select').addEventListener('change', render);
+
+    render();
+</script>
+
+</body>
+</html>
